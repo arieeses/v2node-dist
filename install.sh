@@ -2,9 +2,9 @@
 # v2node 一键安装(从公开分发仓库 arieeses/v2node-dist 拉预编译二进制;源码私有)。
 # 用法:
 #   bash <(curl -Ls https://raw.githubusercontent.com/arieeses/v2node-dist/main/install.sh) <面板地址> <节点ID> <ApiKey>
-# 省略参数则交互输入。可用环境变量 VERSION 指定版本(默认当前测试版)。
+# 省略参数则交互输入。默认装最新正式版(releases/latest,跳过预发布);
+# 可用 VERSION=vX.Y.Z 指定某个 tag(含预发布测试版)。
 set -e
-VERSION="${VERSION:-v1.0.22-lulutls-test}"
 green='\033[0;32m'; red='\033[0;31m'; plain='\033[0m'
 
 API_HOST="$1"; NODE_ID="$2"; API_KEY="$3"
@@ -28,9 +28,15 @@ elif command -v apk >/dev/null 2>&1; then
   apk add --no-cache wget curl unzip tar socat ca-certificates
 fi
 
-echo -e "${green}[2/6] 下载 v2node ${VERSION} (${ARCH})...${plain}"
+# 下载地址:默认 releases/latest(正式版);VERSION 指定则按 tag 拉。
+if [ -n "$VERSION" ]; then
+  URL="https://github.com/arieeses/v2node-dist/releases/download/${VERSION}/v2node-linux-${ARCH}.zip"
+  echo -e "${green}[2/6] 下载 v2node ${VERSION} (${ARCH})...${plain}"
+else
+  URL="https://github.com/arieeses/v2node-dist/releases/latest/download/v2node-linux-${ARCH}.zip"
+  echo -e "${green}[2/6] 下载 v2node 最新正式版 (${ARCH})...${plain}"
+fi
 mkdir -p /usr/local/v2node && cd /usr/local/v2node
-URL="https://github.com/arieeses/v2node-dist/releases/download/${VERSION}/v2node-linux-${ARCH}.zip"
 curl -L -o v2node-linux.zip "$URL"
 if ! unzip -o v2node-linux.zip >/dev/null 2>&1; then
   echo -e "${red}下载/解压失败,请确认能访问 Github 且该版本有 ${ARCH} 包: ${URL}${plain}"; exit 1
@@ -54,7 +60,7 @@ Nodes:
   - ApiHost: "${API_HOST}"
     NodeID: ${NODE_ID}
     ApiKey: "${API_KEY}"
-    Timeout: 15
+    Timeout: 30
 EOF
 
 echo -e "${green}[5/6] 安装 systemd 服务...${plain}"
