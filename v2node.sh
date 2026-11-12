@@ -1,0 +1,832 @@
+#!/bin/bash
+
+red='\033[0;31m'
+green='\033[0;32m'
+yellow='\033[0;33m'
+plain='\033[0m'
+
+cur_dir=$(pwd)
+
+# check root
+[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
+
+# check os
+if [[ -f /etc/redhat-release ]]; then
+    release="centos"
+elif cat /etc/issue | grep -Eqi "alpine"; then
+    release="alpine"
+elif cat /etc/issue | grep -Eqi "debian"; then
+    release="debian"
+elif cat /etc/issue | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /etc/issue | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linux"; then
+    release="centos"
+elif cat /proc/version | grep -Eqi "debian"; then
+    release="debian"
+elif cat /proc/version | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /proc/version | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linux"; then
+    release="centos"
+elif cat /proc/version | grep -Eqi "arch"; then
+    release="arch"
+else
+    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
+fi
+
+arch=$(uname -m)
+
+if [[ $arch == "x86_64" || $arch == "x64" || $arch == "amd64" ]]; then
+    arch="64"
+elif [[ $arch == "aarch64" || $arch == "arm64" ]]; then
+    arch="arm64-v8a"
+elif [[ $arch == "s390x" ]]; then
+    arch="s390x"
+else
+    arch="64"
+    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
+fi
+
+if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
+    echo "本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者"
+    exit 2
+fi
+
+# os version
+if [[ -f /etc/os-release ]]; then
+    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
+fi
+if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
+    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
+fi
+
+if [[ x"${release}" == x"centos" ]]; then
+    if [[ ${os_version} -le 6 ]]; then
+        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+    fi
+    if [[ ${os_version} -eq 7 ]]; then
+        echo -e "${red}注意： CentOS 7 无法使用hysteria1/2协议！${plain}\n"
+    fi
+elif [[ x"${release}" == x"ubuntu" ]]; then
+    if [[ ${os_version} -lt 16 ]]; then
+        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" == x"debian" ]]; then
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+    fi
+fi
+
+confirm() {
+    if [[ $# > 1 ]]; then
+        echo && read -rp "$1 [默认$2]: " temp
+        if [[ x"${temp}" == x"" ]]; then
+            temp=$2
+        fi
+    else
+        read -rp "$1 [y/n]: " temp
+    fi
+    if [[ x"${temp}" == x"y" || x"${temp}" == x"Y" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+confirm_restart() {
+    confirm "是否重启v2node" "y"
+    if [[ $? == 0 ]]; then
+        restart
+    else
+        show_menu
+    fi
+}
+
+before_show_menu() {
+    echo && echo -n -e "${yellow}按回车返回主菜单: ${plain}" && read temp
+    show_menu
+}
+
+install() {
+    bash <(curl -Ls https://raw.githubusercontent.com/arieeses/v2node-dist/main/install.sh)
+    if [[ $? == 0 ]]; then
+        if [[ $# == 0 ]]; then
+            start
+        else
+            start 0
+        fi
+    fi
+}
+
+update() {
+    if [[ $# == 0 ]]; then
+        echo && echo -n -e "输入指定版本(默认最新版): " && read version
+    else
+        version=$2
+    fi
+    VERSION=$version bash <(curl -Ls https://raw.githubusercontent.com/arieeses/v2node-dist/main/install.sh)
+    if [[ $? == 0 ]]; then
+        echo -e "${green}更新完成，已自动重启 v2node，请使用 v2node log 查看运行日志${plain}"
+        exit
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+config() {
+    echo "v2node在修改配置后会自动尝试重启"
+    vi /etc/v2node/config.yml
+    sleep 2
+    restart
+    check_status
+    case $? in
+        0)
+            echo -e "v2node状态: ${green}已运行${plain}"
+            ;;
+        1)
+            echo -e "检测到您未启动v2node或v2node自动重启失败，是否查看日志？[Y/n]" && echo
+            read -e -rp "(默认: y):" yn
+            [[ -z ${yn} ]] && yn="y"
+            if [[ ${yn} == [Yy] ]]; then
+               show_log
+            fi
+            ;;
+        2)
+            echo -e "v2node状态: ${red}未安装${plain}"
+    esac
+}
+
+uninstall() {
+    confirm "确定要卸载 v2node 吗?" "n"
+    if [[ $? != 0 ]]; then
+        if [[ $# == 0 ]]; then
+            show_menu
+        fi
+        return 0
+    fi
+    if [[ x"${release}" == x"alpine" ]]; then
+        service v2node stop
+        rc-update del v2node
+        rm /etc/init.d/v2node -f
+    else
+        systemctl stop v2node
+        systemctl disable v2node
+        rm /etc/systemd/system/v2node.service -f
+        systemctl daemon-reload
+        systemctl reset-failed
+    fi
+    rm /etc/v2node/ -rf
+    rm /usr/local/v2node/ -rf
+
+    echo ""
+    echo -e "卸载成功，如果你想删除此脚本，则退出脚本后运行 ${green}rm /usr/bin/v2node -f${plain} 进行删除"
+    echo ""
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+start() {
+    check_status
+    if [[ $? == 0 ]]; then
+        echo ""
+        echo -e "${green}v2node已运行，无需再次启动，如需重启请选择重启${plain}"
+    else
+        if [[ x"${release}" == x"alpine" ]]; then
+            service v2node start
+        else
+            systemctl start v2node
+        fi
+        sleep 2
+        check_status
+        if [[ $? == 0 ]]; then
+            echo -e "${green}v2node 启动成功，请使用 v2node log 查看运行日志${plain}"
+        else
+            echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+        fi
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+stop() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        service v2node stop
+    else
+        systemctl stop v2node
+    fi
+    sleep 2
+    check_status
+    if [[ $? == 1 ]]; then
+        echo -e "${green}v2node 停止成功${plain}"
+    else
+        echo -e "${red}v2node停止失败，可能是因为停止时间超过了两秒，请稍后查看日志信息${plain}"
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+restart() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        service v2node restart
+    else
+        systemctl restart v2node
+    fi
+    sleep 2
+    check_status
+    if [[ $? == 0 ]]; then
+        echo -e "${green}v2node 重启成功，请使用 v2node log 查看运行日志${plain}"
+    else
+        echo -e "${red}v2node可能启动失败，请稍后使用 v2node log 查看日志信息${plain}"
+    fi
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+status() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        service v2node status
+    else
+        systemctl status v2node --no-pager -l
+    fi
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+enable() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        rc-update add v2node
+    else
+        systemctl enable v2node
+    fi
+    if [[ $? == 0 ]]; then
+        echo -e "${green}v2node 设置开机自启成功${plain}"
+    else
+        echo -e "${red}v2node 设置开机自启失败${plain}"
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+disable() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        rc-update del v2node
+    else
+        systemctl disable v2node
+    fi
+    if [[ $? == 0 ]]; then
+        echo -e "${green}v2node 取消开机自启成功${plain}"
+    else
+        echo -e "${red}v2node 取消开机自启失败${plain}"
+    fi
+
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+show_log() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        echo -e "${red}alpine系统暂不支持日志查看${plain}\n" && exit 1
+    else
+        journalctl -u v2node.service -e --no-pager -f
+    fi
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+update_shell() {
+    wget -O /usr/bin/v2node -N --no-check-certificate https://raw.githubusercontent.com/arieeses/v2node-dist/main/v2node.sh
+    if [[ $? != 0 ]]; then
+        echo ""
+        echo -e "${red}下载脚本失败，请检查本机能否连接 Github${plain}"
+        before_show_menu
+    else
+        chmod +x /usr/bin/v2node
+        echo -e "${green}升级脚本成功，请重新运行脚本${plain}" && exit 0
+    fi
+}
+
+# 0: running, 1: not running, 2: not installed
+check_status() {
+    if [[ ! -f /usr/local/v2node/v2node ]]; then
+        return 2
+    fi
+    if [[ x"${release}" == x"alpine" ]]; then
+        temp=$(service v2node status | awk '{print $3}')
+        if [[ x"${temp}" == x"started" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        temp=$(systemctl status v2node | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+        if [[ x"${temp}" == x"running" ]]; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+check_enabled() {
+    if [[ x"${release}" == x"alpine" ]]; then
+        temp=$(rc-update show | grep v2node)
+        if [[ x"${temp}" == x"" ]]; then
+            return 1
+        else
+            return 0
+        fi
+    else
+        temp=$(systemctl is-enabled v2node)
+        if [[ x"${temp}" == x"enabled" ]]; then
+            return 0
+        else
+            return 1;
+        fi
+    fi
+}
+
+check_uninstall() {
+    check_status
+    if [[ $? != 2 ]]; then
+        echo ""
+        echo -e "${red}v2node已安装，请不要重复安装${plain}"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 1
+    else
+        return 0
+    fi
+}
+
+check_install() {
+    check_status
+    if [[ $? == 2 ]]; then
+        echo ""
+        echo -e "${red}请先安装v2node${plain}"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 1
+    else
+        return 0
+    fi
+}
+
+show_status() {
+    check_status
+    case $? in
+        0)
+            echo -e "v2node状态: ${green}已运行${plain}"
+            show_enable_status
+            ;;
+        1)
+            echo -e "v2node状态: ${yellow}未运行${plain}"
+            show_enable_status
+            ;;
+        2)
+            echo -e "v2node状态: ${red}未安装${plain}"
+    esac
+}
+
+show_enable_status() {
+    check_enabled
+    if [[ $? == 0 ]]; then
+        echo -e "是否开机自启: ${green}是${plain}"
+    else
+        echo -e "是否开机自启: ${red}否${plain}"
+    fi
+}
+
+show_v2node_version() {
+    echo -n "v2node 版本："
+    /usr/local/v2node/v2node version
+    echo ""
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
+generate_v2node_config() {
+        local api_host="$1"
+        local node_id="$2"
+        local api_key="$3"
+
+        mkdir -p /etc/v2node >/dev/null 2>&1
+        cat > /etc/v2node/config.yml <<EOF
+Log:
+  Level: warning
+  Output: ""
+  Access: none
+
+Nodes:
+  - ApiHost: "${api_host}"
+    NodeID: ${node_id}
+    ApiKey: "${api_key}"
+    Timeout: 15
+EOF
+        echo -e "${green}V2node 配置文件生成完成,正在重新启动服务${plain}"
+        if [[ x"${release}" == x"alpine" ]]; then
+            service v2node restart
+        else
+            systemctl restart v2node
+        fi
+        sleep 2
+        check_status
+        echo -e ""
+        if [[ $? == 0 ]]; then
+            echo -e "${green}v2node 重启成功${plain}"
+        else
+            echo -e "${red}v2node 可能启动失败，请使用 v2node log 查看日志信息${plain}"
+        fi
+}
+
+
+generate_config_file() {
+    # 交互式收集参数，提供示例默认值
+    read -rp "面板API地址[格式: https://example.com/]: " api_host
+    api_host=${api_host:-https://example.com/}
+    read -rp "节点ID: " node_id
+    node_id=${node_id:-1}
+    read -rp "节点通讯密钥: " api_key
+
+    # 生成配置文件（覆盖可能从包中复制的模板）
+    generate_v2node_config "$api_host" "$node_id" "$api_key"
+}
+
+# 放开防火墙端口
+open_ports() {
+    systemctl stop firewalld.service 2>/dev/null
+    systemctl disable firewalld.service 2>/dev/null
+    setenforce 0 2>/dev/null
+    ufw disable 2>/dev/null
+    iptables -P INPUT ACCEPT 2>/dev/null
+    iptables -P FORWARD ACCEPT 2>/dev/null
+    iptables -P OUTPUT ACCEPT 2>/dev/null
+    iptables -t nat -F 2>/dev/null
+    iptables -t mangle -F 2>/dev/null
+    iptables -F 2>/dev/null
+    iptables -X 2>/dev/null
+    netfilter-persistent save 2>/dev/null
+    echo -e "${green}放开防火墙端口成功！${plain}"
+}
+
+install_haproxy() {
+    echo -e "${green}开始安装 HAProxy 并生成 443 SNI 分流配置...${plain}"
+    # 按系统类型安装
+    case "${release}" in
+        ubuntu | debian)
+            apt update -y >/dev/null 2>&1
+            apt install -y haproxy socat
+            ;;
+        centos)
+            (command -v dnf >/dev/null 2>&1 && dnf install -y haproxy socat) || yum install -y haproxy socat
+            ;;
+        alpine)
+            apk add haproxy socat
+            ;;
+        arch)
+            pacman -Sy --noconfirm haproxy socat
+            ;;
+        *)
+            echo -e "${red}不支持的系统: ${release}${plain}" && return 1
+            ;;
+    esac
+    if ! command -v haproxy >/dev/null 2>&1; then
+        echo -e "${red}HAProxy 安装失败，请检查软件源${plain}" && return 1
+    fi
+
+    mkdir -p /etc/haproxy
+    [ -f /etc/haproxy/haproxy.cfg ] && cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
+
+    # 私有配置源：给了 URL 就从你的私有仓/gist/服务器拉取真实的 haproxy.cfg + sni.map
+    # （含落地信息，绝不进这个公开脚本）。URL 来源优先级：参数 $1 > 环境变量 HAPROXY_CFG_URL >
+    # 交互输入；留空则写下面的通用占位骨架。会拉取 <URL>/haproxy.cfg 和 <URL>/sni.map。
+    local src="${1:-$HAPROXY_CFG_URL}"
+    if [ -z "$src" ]; then
+        read -rp "私有配置源URL基址(留空=写通用骨架): " src
+    fi
+    local from_private=0
+    if [ -n "$src" ]; then
+        src="${src%/}"
+        if curl -fsSL "$src/haproxy.cfg" -o /etc/haproxy/haproxy.cfg \
+           && curl -fsSL "$src/sni.map" -o /etc/haproxy/sni.map; then
+            echo -e "${green}已从私有源拉取 haproxy.cfg + sni.map${plain}"
+            from_private=1
+        else
+            echo -e "${red}私有源拉取失败，回退到通用占位骨架${plain}"
+        fi
+    fi
+
+    if [ "$from_private" != "1" ]; then
+    # 检测版本决定 keepalive 写法：2.4+ 用 clitcpka-idle/intvl/cnt，旧版(如 Debian11 的 2.2)走 sysctl
+    local ver ka
+    ver=$(haproxy -v 2>/dev/null | grep -oiE '[0-9]+\.[0-9]+' | head -1)
+    if [ -n "$ver" ] && awk "BEGIN{exit !($ver>=2.4)}"; then
+        ka=$'    option clitcpka\n    clitcpka-idle  30s\n    clitcpka-intvl 10s\n    clitcpka-cnt   6'
+    else
+        ka='    option clitcpka'
+        cat >/etc/sysctl.d/99-haproxy-ka.conf <<'SYS'
+net.ipv4.tcp_keepalive_time = 30
+net.ipv4.tcp_keepalive_intvl = 10
+net.ipv4.tcp_keepalive_probes = 6
+SYS
+        sysctl -p /etc/sysctl.d/99-haproxy-ka.conf >/dev/null 2>&1
+    fi
+
+    # 生成 /etc/haproxy/haproxy.cfg
+    cat >/etc/haproxy/haproxy.cfg <<EOF
+global
+    log /dev/log local0
+    maxconn 200000
+    stats socket /run/haproxy/admin.sock mode 660 level admin
+    stats timeout 30s
+
+defaults
+    mode tcp
+    log global
+    option tcplog
+    timeout connect 5s
+    timeout client  1h
+    timeout server  1h
+    timeout tunnel  1h
+    # 客户端方向 TCP keepalive：上游每小时换 IP 时，~90s 内回收死连接
+${ka}
+
+frontend fe_443
+    bind :443
+    bind :::443
+    mode tcp
+    tcp-request inspect-delay 200ms
+    # 抓 SNI 进日志，排查用
+    tcp-request content capture req.ssl_sni len 100
+    log-format "%ci:%cp sni=%[capture.req.hdr(0)] -> %b %ts"
+    # 只放行：是 TLS ClientHello 且 SNI 在 map 里；其余(非TLS/无SNI/未知SNI/扫描器)一律拒绝
+    tcp-request content accept if { req.ssl_hello_type 1 } { req.ssl_sni,lower,map_dom(/etc/haproxy/sni.map) -m found }
+    tcp-request content reject
+    use_backend %[req.ssl_sni,lower,map_dom(/etc/haproxy/sni.map,be_reject)]
+
+# 兜底黑洞：未匹配的正常到不了这里(已被 reject)；无 server = 直接断开
+backend be_reject
+    mode tcp
+
+# ---- 每个域名 -> 它节点真实监听的端口 ----
+backend be_node1
+    server s 127.0.0.1:33001
+backend be_node2
+    server s 127.0.0.1:33002
+backend be_node3
+    server s 127.0.0.1:33003
+backend be_node4
+    server s 127.0.0.1:33004
+backend be_node5
+    server s 127.0.0.1:33005
+backend be_node6
+    server s 127.0.0.1:33006
+backend be_node7
+    server s 127.0.0.1:33007
+backend be_node8
+    server s 127.0.0.1:33008
+EOF
+
+    # 生成 /etc/haproxy/sni.map（已存在则不覆盖，避免冲掉你已有的映射）
+    if [ ! -f /etc/haproxy/sni.map ]; then
+        cat >/etc/haproxy/sni.map <<'MAP'
+# 域名(节点 serverName)      后端(be_nodeN 对应 127.0.0.1:3300N)
+node1.example.com   be_node1
+node2.example.com   be_node2
+node3.example.com   be_node3
+node4.example.com   be_node4
+node5.example.com   be_node5
+node6.example.com   be_node6
+node7.example.com   be_node7
+node8.example.com   be_node8
+MAP
+    fi
+    fi
+
+    # 校验并启动
+    if haproxy -c -f /etc/haproxy/haproxy.cfg; then
+        systemctl enable haproxy >/dev/null 2>&1
+        systemctl restart haproxy
+        echo -e "${green}HAProxy 安装并启动成功！${plain}"
+        echo -e "主配置：${green}/etc/haproxy/haproxy.cfg${plain}"
+        echo -e "分流映射：${green}/etc/haproxy/sni.map${plain}（把域名改成你的节点 serverName，并对准真实端口 be_nodeN -> 3300N）"
+        echo -e "改完后执行：${green}haproxy -c -f /etc/haproxy/haproxy.cfg \&\& systemctl reload haproxy${plain}"
+        ss -tlnp 2>/dev/null | grep -w 443 || echo -e "${red}注意：443 未监听，可能被节点占用（先把占 443 的节点改到 3300x）${plain}"
+    else
+        echo -e "${red}HAProxy 配置校验失败，请检查 /etc/haproxy/haproxy.cfg${plain}" && return 1
+    fi
+}
+
+start_haproxy() {
+    if ! command -v haproxy >/dev/null 2>&1; then
+        echo -e "${red}未检测到 HAProxy，请先用菜单 16 安装${plain}" && return 1
+    fi
+    systemctl start haproxy && echo -e "${green}HAProxy 已启动${plain}" || echo -e "${red}HAProxy 启动失败${plain}"
+    ss -tlnp 2>/dev/null | grep -w 443
+}
+
+stop_haproxy() {
+    systemctl stop haproxy && echo -e "${green}HAProxy 已停止${plain}" || echo -e "${red}HAProxy 停止失败${plain}"
+}
+
+restart_haproxy() {
+    if ! command -v haproxy >/dev/null 2>&1; then
+        echo -e "${red}未检测到 HAProxy，请先用菜单 16 安装${plain}" && return 1
+    fi
+    # 先校验配置，避免坏配置把服务弄挂
+    if haproxy -c -f /etc/haproxy/haproxy.cfg; then
+        systemctl restart haproxy && echo -e "${green}HAProxy 已重启${plain}" || echo -e "${red}HAProxy 重启失败${plain}"
+        ss -tlnp 2>/dev/null | grep -w 443
+    else
+        echo -e "${red}配置校验失败，未重启（先修 /etc/haproxy/haproxy.cfg）${plain}" && return 1
+    fi
+}
+
+optimize_network() {
+    echo -e "${green}正在为落地节点应用 BBR + 网络内核优化...${plain}"
+
+    # 1) 启用 BBR（部分内核需手动加载模块 + 持久化）
+    modprobe tcp_bbr 2>/dev/null
+    if grep -qw bbr /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null; then
+        echo "tcp_bbr" >/etc/modules-load.d/bbr.conf 2>/dev/null
+        echo -e "${green}内核支持 BBR ✓${plain}"
+    else
+        echo -e "${red}当前内核不支持 BBR（需 4.9+），BBR 项将不生效；其余参数仍会写入。${plain}"
+    fi
+
+    # 2) 写入 sysctl。落地节点特点：高并发 + 大量对外连接。
+    #    缓冲区刻意取适中(8MB)——大量连接×大buffer 会撑爆内存，你的机器内存偏紧。
+    cat >/etc/sysctl.d/99-v2node-net.conf <<'SYS'
+# ---- BBR 拥塞控制 ----
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+# ---- 连接扩容（落地高并发）----
+net.core.somaxconn = 32768
+net.ipv4.tcp_max_syn_backlog = 8192
+net.core.netdev_max_backlog = 16384
+fs.file-max = 1000000
+# ---- 对外连接端口 / 回收（落地大量出站）----
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fin_timeout = 15
+# ---- 握手 / 探测 ----
+net.ipv4.tcp_fastopen = 3
+net.ipv4.tcp_mtu_probing = 1
+net.ipv4.tcp_slow_start_after_idle = 0
+# ---- 缓冲区（适中 8MB 上限，兼顾吞吐与内存）----
+net.core.rmem_max = 8388608
+net.core.wmem_max = 8388608
+net.ipv4.tcp_rmem = 4096 87380 8388608
+net.ipv4.tcp_wmem = 4096 65536 8388608
+SYS
+    sysctl --system >/dev/null 2>&1
+
+    # 3) 文件描述符上限（高并发连接必须）
+    if ! grep -q "v2node-nofile" /etc/security/limits.conf 2>/dev/null; then
+        cat >>/etc/security/limits.conf <<'LIM'
+# v2node-nofile
+* soft nofile 1000000
+* hard nofile 1000000
+root soft nofile 1000000
+root hard nofile 1000000
+LIM
+    fi
+    mkdir -p /etc/systemd/system/v2node.service.d
+    cat >/etc/systemd/system/v2node.service.d/limits.conf <<'SVC'
+[Service]
+LimitNOFILE=1000000
+SVC
+    systemctl daemon-reload 2>/dev/null
+
+    # 4) 校验
+    echo -e "${green}已应用，当前生效值：${plain}"
+    sysctl net.ipv4.tcp_congestion_control net.core.default_qdisc net.core.somaxconn 2>/dev/null | sed 's/^/  /'
+    echo -e "${yellow}提示：文件描述符上限对已运行的 v2node 需「重启 v2node」(菜单6) 后生效。${plain}"
+}
+
+show_usage() {
+    echo "v2node 管理脚本使用方法: "
+    echo "------------------------------------------"
+    echo "v2node              - 显示管理菜单 (功能更多)"
+    echo "v2node start        - 启动 v2node"
+    echo "v2node stop         - 停止 v2node"
+    echo "v2node restart      - 重启 v2node"
+    echo "v2node status       - 查看 v2node 状态"
+    echo "v2node enable       - 设置 v2node 开机自启"
+    echo "v2node disable      - 取消 v2node 开机自启"
+    echo "v2node log          - 查看 v2node 日志"
+    echo "v2node x25519       - 生成 x25519 密钥"
+    echo "v2node generate     - 生成 v2node 配置文件"
+    echo "v2node update       - 更新 v2node"
+    echo "v2node update x.x.x - 安装 v2node 指定版本"
+    echo "v2node install      - 安装 v2node"
+    echo "v2node uninstall    - 卸载 v2node"
+    echo "v2node version      - 查看 v2node 版本"
+    echo "------------------------------------------"
+}
+
+show_menu() {
+    echo -e "
+  ${green}v2node 后端管理脚本，${plain}${red}不适用于docker${plain}
+--- https://github.com/clavin-dev/m2node ---
+  ${green}0.${plain} 修改配置
+————————————————
+  ${green}1.${plain} 安装 v2node
+  ${green}2.${plain} 更新 v2node
+  ${green}3.${plain} 卸载 v2node
+————————————————
+  ${green}4.${plain} 启动 v2node
+  ${green}5.${plain} 停止 v2node
+  ${green}6.${plain} 重启 v2node
+  ${green}7.${plain} 查看 v2node 状态
+  ${green}8.${plain} 查看 v2node 日志
+————————————————
+  ${green}9.${plain} 设置 v2node 开机自启
+  ${green}10.${plain} 取消 v2node 开机自启
+————————————————
+  ${green}11.${plain} 查看 v2node 版本
+  ${green}12.${plain} 升级 v2node 维护脚本
+  ${green}13.${plain} 生成 v2node 配置文件
+  ${green}14.${plain} 放行 VPS 的所有网络端口
+————————————————
+  ${green}16.${plain} 一键安装 HAProxy（443 SNI 分流）
+  ${green}17.${plain} 启动 HAProxy
+  ${green}18.${plain} 停止 HAProxy
+  ${green}19.${plain} 重启 HAProxy
+————————————————
+  ${green}20.${plain} BBR 网络优化（落地节点）
+————————————————
+  ${green}15.${plain} 退出脚本
+ "
+ #后续更新可加入上方字符串中
+    show_status
+    echo && read -rp "请输入选择 [0-20]: " num
+
+    case "${num}" in
+        0) config ;;
+        1) check_uninstall && install ;;
+        2) check_install && update ;;
+        3) check_install && uninstall ;;
+        4) check_install && start ;;
+        5) check_install && stop ;;
+        6) check_install && restart ;;
+        7) check_install && status ;;
+        8) check_install && show_log ;;
+        9) check_install && enable ;;
+        10) check_install && disable ;;
+        11) check_install && show_v2node_version ;;
+        12) update_shell ;;
+        13) generate_config_file ;;
+        14) open_ports ;;
+        15) exit ;;
+        16) install_haproxy ;;
+        17) start_haproxy ;;
+        18) stop_haproxy ;;
+        19) restart_haproxy ;;
+        20) optimize_network ;;
+        *) echo -e "${red}请输入正确的数字 [0-20]${plain}" ;;
+    esac
+}
+
+
+if [[ $# > 0 ]]; then
+    case $1 in
+        "start") check_install 0 && start 0 ;;
+        "stop") check_install 0 && stop 0 ;;
+        "restart") check_install 0 && restart 0 ;;
+        "status") check_install 0 && status 0 ;;
+        "enable") check_install 0 && enable 0 ;;
+        "disable") check_install 0 && disable 0 ;;
+        "log") check_install 0 && show_log 0 ;;
+        "update") check_install 0 && update 0 $2 ;;
+        "config") config $* ;;
+        "generate") generate_config_file ;;
+        "install") check_uninstall 0 && install 0 ;;
+        "uninstall") check_install 0 && uninstall 0 ;;
+        "version") check_install 0 && show_v2node_version 0 ;;
+        "update_shell") update_shell ;;
+        "haproxy") install_haproxy "$2" ;;
+        "haproxy-start") start_haproxy ;;
+        "haproxy-stop") stop_haproxy ;;
+        "haproxy-restart") restart_haproxy ;;
+        "bbr"|"optimize") optimize_network ;;
+        *) show_usage
+    esac
+else
+    show_menu
+fi
