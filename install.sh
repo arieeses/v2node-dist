@@ -107,6 +107,15 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload && systemctl enable v2node >/dev/null 2>&1
 
+# 安装 v2node 管理命令(curl 失败不影响服务)
+if curl -Ls -o /usr/bin/v2node https://raw.githubusercontent.com/arieeses/v2node-dist/main/v2node.sh && [ -s /usr/bin/v2node ]; then
+  chmod +x /usr/bin/v2node
+  echo -e "${green}已安装管理命令: 输入 v2node 打开菜单${plain}"
+else
+  echo -e "${yellow}管理命令安装失败(不影响服务),可手动装:${plain}"
+  echo -e "  ${green}curl -Ls -o /usr/bin/v2node https://raw.githubusercontent.com/arieeses/v2node-dist/main/v2node.sh && chmod +x /usr/bin/v2node${plain}"
+fi
+
 echo "------------------------------------------"
 /usr/local/v2node/v2node version || true
 if [ "$NEED_EDIT" = "1" ]; then
