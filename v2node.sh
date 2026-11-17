@@ -1050,6 +1050,46 @@ restart_haproxy() {
     fi
 }
 
+# 更新分流规则：刷新 /etc/haproxy/sni.map 后热重载（reload，不断连）。
+# 来源：私有源URL基址（参数$1 > 环境变量 HAPROXY_CFG_URL > 交互），拉 <URL>/sni.map 覆盖；
+# 留空则用本机编辑器手动改。改 sni.map 必须 reload 才生效。
+update_haproxy_rules() {
+    if ! command -v haproxy >/dev/null 2>&1; then
+        echo -e "${red}未检测到 HAProxy，请先用菜单 16 安装${plain}" && return 1
+    fi
+    mkdir -p /etc/haproxy
+    [ -f /etc/haproxy/sni.map ] && cp /etc/haproxy/sni.map /etc/haproxy/sni.map.bak
+    local src="${1:-$HAPROXY_CFG_URL}"
+    if [ -z "$src" ]; then
+        read -rp "分流规则来源URL基址（留空=手动编辑 sni.map）: " src
+    fi
+    if [ -n "$src" ]; then
+        src="${src%/}"
+        if curl -fsSL "$src/sni.map" -o /etc/haproxy/sni.map.new; then
+            mv /etc/haproxy/sni.map.new /etc/haproxy/sni.map
+            echo -e "${green}已从 $src/sni.map 拉取最新分流规则${plain}"
+        else
+            rm -f /etc/haproxy/sni.map.new
+            echo -e "${red}拉取失败，保留原 sni.map${plain}" && return 1
+        fi
+    else
+        ${EDITOR:-vi} /etc/haproxy/sni.map
+    fi
+    # 校验配置后热重载（sni.map 改动必须 reload 才生效；reload 不断开现有连接）
+    if haproxy -c -f /etc/haproxy/haproxy.cfg; then
+        if systemctl reload haproxy; then
+            echo -e "${green}分流规则已更新并热重载${plain}"
+            echo -e "当前规则条数：${green}$(grep -cE 'be_node' /etc/haproxy/sni.map 2>/dev/null)${plain}"
+        else
+            echo -e "${red}reload 失败${plain}" && return 1
+        fi
+    else
+        echo -e "${red}配置校验失败，回滚 sni.map${plain}"
+        [ -f /etc/haproxy/sni.map.bak ] && cp /etc/haproxy/sni.map.bak /etc/haproxy/sni.map
+        return 1
+    fi
+}
+
 optimize_network() {
     echo -e "${green}正在为落地节点应用 BBR + 网络内核优化...${plain}"
 
@@ -1161,6 +1201,7 @@ show_menu() {
   ${green}17.${plain} 启动 HAProxy
   ${green}18.${plain} 停止 HAProxy
   ${green}19.${plain} 重启 HAProxy
+  ${green}21.${plain} 更新 HAProxy 分流规则（更新 sni.map 热重载）
 ————————————————
   ${green}20.${plain} BBR 网络优化（落地节点）
 ————————————————
@@ -1168,7 +1209,7 @@ show_menu() {
  "
  #后续更新可加入上方字符串中
     show_status
-    echo && read -rp "请输入选择 [0-20]: " num
+    echo && read -rp "请输入选择 [0-21]: " num
 
     case "${num}" in
         0) config ;;
@@ -1192,7 +1233,8 @@ show_menu() {
         18) stop_haproxy ;;
         19) restart_haproxy ;;
         20) optimize_network ;;
-        *) echo -e "${red}请输入正确的数字 [0-20]${plain}" ;;
+        21) update_haproxy_rules ;;
+        *) echo -e "${red}请输入正确的数字 [0-21]${plain}" ;;
     esac
 }
 
@@ -1217,6 +1259,7 @@ if [[ $# > 0 ]]; then
         "haproxy-start") start_haproxy ;;
         "haproxy-stop") stop_haproxy ;;
         "haproxy-restart") restart_haproxy ;;
+        "haproxy-rules"|"haproxy-update") update_haproxy_rules "$2" ;;
         "bbr"|"optimize") optimize_network ;;
         *) show_usage
     esac
