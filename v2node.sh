@@ -568,6 +568,7 @@ ${ka}
 
 frontend fe_443
     bind :443
+    bind :80
     bind :::443
     mode tcp
     tcp-request inspect-delay 200ms
@@ -583,11 +584,11 @@ frontend fe_443
 backend be_reject
     mode tcp
 
-# ---- 每个域名 -> 它节点真实监听的端口 ----
+# ---- 顶部：无注释组，保留各自原端口 ----
 backend be_node1
     server s 127.0.0.1:33001
 backend be_node2
-    server s 127.0.0.1:33002
+    server s 127.0.0.1:27102
 backend be_node3
     server s 127.0.0.1:33003
 backend be_node4
@@ -600,20 +601,412 @@ backend be_node7
     server s 127.0.0.1:33007
 backend be_node8
     server s 127.0.0.1:33008
+
+#ch-cf  (15 × 26101)
+backend be_node9
+    server s 127.0.0.1:26101
+backend be_node10
+    server s 127.0.0.1:26101
+backend be_node11
+    server s 127.0.0.1:26101
+backend be_node12
+    server s 127.0.0.1:26101
+backend be_node13
+    server s 127.0.0.1:26101
+backend be_node14
+    server s 127.0.0.1:26101
+backend be_node15
+    server s 127.0.0.1:26101
+backend be_node16
+    server s 127.0.0.1:26101
+backend be_node17
+    server s 127.0.0.1:26101
+backend be_node18
+    server s 127.0.0.1:26101
+backend be_node19
+    server s 127.0.0.1:26101
+backend be_node20
+    server s 127.0.0.1:26101
+backend be_node21
+    server s 127.0.0.1:26101
+backend be_node22
+    server s 127.0.0.1:26101
+backend be_node23
+    server s 127.0.0.1:26101
+
+#fn-cf  (15 × 26201)
+backend be_node24
+    server s 127.0.0.1:26201
+backend be_node25
+    server s 127.0.0.1:26201
+backend be_node26
+    server s 127.0.0.1:26201
+backend be_node27
+    server s 127.0.0.1:26201
+backend be_node28
+    server s 127.0.0.1:26201
+backend be_node29
+    server s 127.0.0.1:26201
+backend be_node30
+    server s 127.0.0.1:26201
+backend be_node31
+    server s 127.0.0.1:26201
+backend be_node32
+    server s 127.0.0.1:26201
+backend be_node33
+    server s 127.0.0.1:26201
+backend be_node34
+    server s 127.0.0.1:26201
+backend be_node35
+    server s 127.0.0.1:26201
+backend be_node36
+    server s 127.0.0.1:26201
+backend be_node37
+    server s 127.0.0.1:26201
+backend be_node38
+    server s 127.0.0.1:26201
+
+#kn-cf  (15 × 26301)
+backend be_node39
+    server s 127.0.0.1:26301
+backend be_node40
+    server s 127.0.0.1:26301
+backend be_node41
+    server s 127.0.0.1:26301
+backend be_node42
+    server s 127.0.0.1:26301
+backend be_node43
+    server s 127.0.0.1:26301
+backend be_node44
+    server s 127.0.0.1:26301
+backend be_node45
+    server s 127.0.0.1:26301
+backend be_node46
+    server s 127.0.0.1:26301
+backend be_node47
+    server s 127.0.0.1:26301
+backend be_node48
+    server s 127.0.0.1:26301
+backend be_node49
+    server s 127.0.0.1:26301
+backend be_node50
+    server s 127.0.0.1:26301
+backend be_node51
+    server s 127.0.0.1:26301
+backend be_node52
+    server s 127.0.0.1:26301
+backend be_node53
+    server s 127.0.0.1:26301
+
+#ly-cf  (15 × 26401)
+backend be_node54
+    server s 127.0.0.1:26401
+backend be_node55
+    server s 127.0.0.1:26401
+backend be_node56
+    server s 127.0.0.1:26401
+backend be_node57
+    server s 127.0.0.1:26401
+backend be_node58
+    server s 127.0.0.1:26401
+backend be_node59
+    server s 127.0.0.1:26401
+backend be_node60
+    server s 127.0.0.1:26401
+backend be_node61
+    server s 127.0.0.1:26401
+backend be_node62
+    server s 127.0.0.1:26401
+backend be_node63
+    server s 127.0.0.1:26401
+backend be_node64
+    server s 127.0.0.1:26401
+backend be_node65
+    server s 127.0.0.1:26401
+backend be_node66
+    server s 127.0.0.1:26401
+backend be_node67
+    server s 127.0.0.1:26401
+backend be_node68
+    server s 127.0.0.1:26401
+
+#qc-cf  (15 × 26501)
+backend be_node69
+    server s 127.0.0.1:26501
+backend be_node70
+    server s 127.0.0.1:26501
+backend be_node71
+    server s 127.0.0.1:26501
+backend be_node72
+    server s 127.0.0.1:26501
+backend be_node73
+    server s 127.0.0.1:26501
+backend be_node74
+    server s 127.0.0.1:26501
+backend be_node75
+    server s 127.0.0.1:26501
+backend be_node76
+    server s 127.0.0.1:26501
+backend be_node77
+    server s 127.0.0.1:26501
+backend be_node78
+    server s 127.0.0.1:26501
+backend be_node79
+    server s 127.0.0.1:26501
+backend be_node80
+    server s 127.0.0.1:26501
+backend be_node81
+    server s 127.0.0.1:26501
+backend be_node82
+    server s 127.0.0.1:26501
+backend be_node83
+    server s 127.0.0.1:26501
+
+#uy-cf  (15 × 26601)
+backend be_node84
+    server s 127.0.0.1:26601
+backend be_node85
+    server s 127.0.0.1:26601
+backend be_node86
+    server s 127.0.0.1:26601
+backend be_node87
+    server s 127.0.0.1:26601
+backend be_node88
+    server s 127.0.0.1:26601
+backend be_node89
+    server s 127.0.0.1:26601
+backend be_node90
+    server s 127.0.0.1:26601
+backend be_node91
+    server s 127.0.0.1:26601
+backend be_node92
+    server s 127.0.0.1:26601
+backend be_node93
+    server s 127.0.0.1:26601
+backend be_node94
+    server s 127.0.0.1:26601
+backend be_node95
+    server s 127.0.0.1:26601
+backend be_node96
+    server s 127.0.0.1:26601
+backend be_node97
+    server s 127.0.0.1:26601
+backend be_node98
+    server s 127.0.0.1:26601
+
+#hd-cf  (15 × 26701)
+backend be_node99
+    server s 127.0.0.1:26701
+backend be_node100
+    server s 127.0.0.1:26701
+backend be_node101
+    server s 127.0.0.1:26701
+backend be_node102
+    server s 127.0.0.1:26701
+backend be_node103
+    server s 127.0.0.1:26701
+backend be_node104
+    server s 127.0.0.1:26701
+backend be_node105
+    server s 127.0.0.1:26701
+backend be_node106
+    server s 127.0.0.1:26701
+backend be_node107
+    server s 127.0.0.1:26701
+backend be_node108
+    server s 127.0.0.1:26701
+backend be_node109
+    server s 127.0.0.1:26701
+backend be_node110
+    server s 127.0.0.1:26701
+backend be_node111
+    server s 127.0.0.1:26701
+backend be_node112
+    server s 127.0.0.1:26701
+backend be_node113
+    server s 127.0.0.1:26701
+
+#re-cf  (15 × 26801)
+backend be_node114
+    server s 127.0.0.1:26801
+backend be_node115
+    server s 127.0.0.1:26801
+backend be_node116
+    server s 127.0.0.1:26801
+backend be_node117
+    server s 127.0.0.1:26801
+backend be_node118
+    server s 127.0.0.1:26801
+backend be_node119
+    server s 127.0.0.1:26801
+backend be_node120
+    server s 127.0.0.1:26801
+backend be_node121
+    server s 127.0.0.1:26801
+backend be_node122
+    server s 127.0.0.1:26801
+backend be_node123
+    server s 127.0.0.1:26801
+backend be_node124
+    server s 127.0.0.1:26801
+backend be_node125
+    server s 127.0.0.1:26801
+backend be_node126
+    server s 127.0.0.1:26801
+backend be_node127
+    server s 127.0.0.1:26801
+backend be_node128
+    server s 127.0.0.1:26801
 EOF
 
     # 生成 /etc/haproxy/sni.map（已存在则不覆盖，避免冲掉你已有的映射）
     if [ ! -f /etc/haproxy/sni.map ]; then
         cat >/etc/haproxy/sni.map <<'MAP'
-# 域名(节点 serverName)      后端(be_nodeN 对应 127.0.0.1:3300N)
-node1.example.com   be_node1
-node2.example.com   be_node2
-node3.example.com   be_node3
-node4.example.com   be_node4
-node5.example.com   be_node5
-node6.example.com   be_node6
-node7.example.com   be_node7
-node8.example.com   be_node8
+#one
+chone.soraus.top       be_node1
+fnone.sorajp.top       be_node2
+knone.soraus.top       be_node3
+lyone.soraus.top       be_node4
+qcone.soraus.top       be_node5
+uyone.soraus.top       be_node6
+hdone.soraus.top       be_node7
+reone.soraus.top       be_node8
+
+#ch-cf
+chsua.biore.top        be_node9
+chsub.biore.top        be_node10
+chkha.biore.top        be_node11
+chkhb.biore.top        be_node12
+chpja.biore.top        be_node13
+chpjb.biore.top        be_node14
+chwta.biore.top        be_node15
+chhta.biore.top        be_node16
+chgsa.biore.top        be_node17
+chgsb.biore.top        be_node18
+chrta.biore.top        be_node19
+chnva.biore.top        be_node20
+chrka.biore.top        be_node21
+cheaa.biore.top        be_node22
+chkua.biore.top        be_node23
+
+#fn-cf
+fnsua.biore.top        be_node24
+fnsub.biore.top        be_node25
+fnkha.biore.top        be_node26
+fnkhb.biore.top        be_node27
+fnpja.biore.top        be_node28
+fnpjb.biore.top        be_node29
+fnwta.biore.top        be_node30
+fnhta.biore.top        be_node31
+fngsa.biore.top        be_node32
+fngsb.biore.top        be_node33
+fnrta.biore.top        be_node34
+fnnva.biore.top        be_node35
+fnrka.biore.top        be_node36
+fneaa.biore.top        be_node37
+fnkua.biore.top        be_node38
+
+#kn-cf
+knsua.biore.top        be_node39
+knsub.biore.top        be_node40
+knkha.biore.top        be_node41
+knkhb.biore.top        be_node42
+knpja.biore.top        be_node43
+knpjb.biore.top        be_node44
+knwta.biore.top        be_node45
+knhta.biore.top        be_node46
+kngsa.biore.top        be_node47
+kngsb.biore.top        be_node48
+knrta.biore.top        be_node49
+knnva.biore.top        be_node50
+knrka.biore.top        be_node51
+kneaa.biore.top        be_node52
+knkua.biore.top        be_node53
+
+#ly-cf
+lysua.biore.top        be_node54
+lysub.biore.top        be_node55
+lykha.biore.top        be_node56
+lykhb.biore.top        be_node57
+lypja.biore.top        be_node58
+lypjb.biore.top        be_node59
+lywta.biore.top        be_node60
+lyhta.biore.top        be_node61
+lygsa.biore.top        be_node62
+lygsb.biore.top        be_node63
+lyrta.biore.top        be_node64
+lynva.biore.top        be_node65
+lyrka.biore.top        be_node66
+lyeaa.biore.top        be_node67
+lykua.biore.top        be_node68
+
+#qc-cf
+qcsua.biore.top        be_node69
+qcsub.biore.top        be_node70
+qckha.biore.top        be_node71
+qckhb.biore.top        be_node72
+qcpja.biore.top        be_node73
+qcpjb.biore.top        be_node74
+qcwta.biore.top        be_node75
+qchta.biore.top        be_node76
+qcgsa.biore.top        be_node77
+qcgsb.biore.top        be_node78
+qcrta.biore.top        be_node79
+qcnva.biore.top        be_node80
+qcrka.biore.top        be_node81
+qceaa.biore.top        be_node82
+qckua.biore.top        be_node83
+
+#uy-cf
+uysua.biore.top        be_node84
+uysub.biore.top        be_node85
+uykha.biore.top        be_node86
+uykhb.biore.top        be_node87
+uypja.biore.top        be_node88
+uypjb.biore.top        be_node89
+uywta.biore.top        be_node90
+uyhta.biore.top        be_node91
+uygsa.biore.top        be_node92
+uygsb.biore.top        be_node93
+uyrta.biore.top        be_node94
+uynva.biore.top        be_node95
+uyrka.biore.top        be_node96
+uyeaa.biore.top        be_node97
+uykua.biore.top        be_node98
+
+#hd-cf
+hdsua.biore.top        be_node99
+hdsub.biore.top        be_node100
+hdkha.biore.top        be_node101
+hdkhb.biore.top        be_node102
+hdpja.biore.top        be_node103
+hdpjb.biore.top        be_node104
+hdwta.biore.top        be_node105
+hdhta.biore.top        be_node106
+hdgsa.biore.top        be_node107
+hdgsb.biore.top        be_node108
+hdrta.biore.top        be_node109
+hdnva.biore.top        be_node110
+hdrka.biore.top        be_node111
+hdeaa.biore.top        be_node112
+hdkua.biore.top        be_node113
+
+#re-cf
+resua.biore.top        be_node114
+resub.biore.top        be_node115
+rekha.biore.top        be_node116
+rekhb.biore.top        be_node117
+repja.biore.top        be_node118
+repjb.biore.top        be_node119
+rewta.biore.top        be_node120
+rehta.biore.top        be_node121
+regsa.biore.top        be_node122
+regsb.biore.top        be_node123
+rerta.biore.top        be_node124
+renva.biore.top        be_node125
+rerka.biore.top        be_node126
+reeaa.biore.top        be_node127
+rekua.biore.top        be_node128
 MAP
     fi
     fi
