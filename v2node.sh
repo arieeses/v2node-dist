@@ -489,7 +489,7 @@ write_default_sni_map() {
     cat >/etc/haproxy/sni.map <<'MAP'
 #one
 chone.soraus.top       be_node1
-fnone.sorajp.top       be_node2
+fnone.soraus.top       be_node2
 knone.soraus.top       be_node3
 lyone.soraus.top       be_node4
 qcone.soraus.top       be_node5
@@ -739,7 +739,7 @@ backend be_reject
 backend be_node1
     server s 127.0.0.1:33001
 backend be_node2
-    server s 127.0.0.1:27102
+    server s 127.0.0.1:33002
 backend be_node3
     server s 127.0.0.1:33003
 backend be_node4
