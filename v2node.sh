@@ -484,6 +484,157 @@ open_ports() {
     echo -e "${green}放开防火墙端口成功！${plain}"
 }
 
+# 写入内置默认分流规则(128 条)到 /etc/haproxy/sni.map（覆盖）
+write_default_sni_map() {
+    cat >/etc/haproxy/sni.map <<'MAP'
+#one
+chone.soraus.top       be_node1
+fnone.sorajp.top       be_node2
+knone.soraus.top       be_node3
+lyone.soraus.top       be_node4
+qcone.soraus.top       be_node5
+uyone.soraus.top       be_node6
+hdone.soraus.top       be_node7
+reone.soraus.top       be_node8
+
+#ch-cf
+chsua.biore.top        be_node9
+chsub.biore.top        be_node10
+chkha.biore.top        be_node11
+chkhb.biore.top        be_node12
+chpja.biore.top        be_node13
+chpjb.biore.top        be_node14
+chwta.biore.top        be_node15
+chhta.biore.top        be_node16
+chgsa.biore.top        be_node17
+chgsb.biore.top        be_node18
+chrta.biore.top        be_node19
+chnva.biore.top        be_node20
+chrka.biore.top        be_node21
+cheaa.biore.top        be_node22
+chkua.biore.top        be_node23
+
+#fn-cf
+fnsua.biore.top        be_node24
+fnsub.biore.top        be_node25
+fnkha.biore.top        be_node26
+fnkhb.biore.top        be_node27
+fnpja.biore.top        be_node28
+fnpjb.biore.top        be_node29
+fnwta.biore.top        be_node30
+fnhta.biore.top        be_node31
+fngsa.biore.top        be_node32
+fngsb.biore.top        be_node33
+fnrta.biore.top        be_node34
+fnnva.biore.top        be_node35
+fnrka.biore.top        be_node36
+fneaa.biore.top        be_node37
+fnkua.biore.top        be_node38
+
+#kn-cf
+knsua.biore.top        be_node39
+knsub.biore.top        be_node40
+knkha.biore.top        be_node41
+knkhb.biore.top        be_node42
+knpja.biore.top        be_node43
+knpjb.biore.top        be_node44
+knwta.biore.top        be_node45
+knhta.biore.top        be_node46
+kngsa.biore.top        be_node47
+kngsb.biore.top        be_node48
+knrta.biore.top        be_node49
+knnva.biore.top        be_node50
+knrka.biore.top        be_node51
+kneaa.biore.top        be_node52
+knkua.biore.top        be_node53
+
+#ly-cf
+lysua.biore.top        be_node54
+lysub.biore.top        be_node55
+lykha.biore.top        be_node56
+lykhb.biore.top        be_node57
+lypja.biore.top        be_node58
+lypjb.biore.top        be_node59
+lywta.biore.top        be_node60
+lyhta.biore.top        be_node61
+lygsa.biore.top        be_node62
+lygsb.biore.top        be_node63
+lyrta.biore.top        be_node64
+lynva.biore.top        be_node65
+lyrka.biore.top        be_node66
+lyeaa.biore.top        be_node67
+lykua.biore.top        be_node68
+
+#qc-cf
+qcsua.biore.top        be_node69
+qcsub.biore.top        be_node70
+qckha.biore.top        be_node71
+qckhb.biore.top        be_node72
+qcpja.biore.top        be_node73
+qcpjb.biore.top        be_node74
+qcwta.biore.top        be_node75
+qchta.biore.top        be_node76
+qcgsa.biore.top        be_node77
+qcgsb.biore.top        be_node78
+qcrta.biore.top        be_node79
+qcnva.biore.top        be_node80
+qcrka.biore.top        be_node81
+qceaa.biore.top        be_node82
+qckua.biore.top        be_node83
+
+#uy-cf
+uysua.biore.top        be_node84
+uysub.biore.top        be_node85
+uykha.biore.top        be_node86
+uykhb.biore.top        be_node87
+uypja.biore.top        be_node88
+uypjb.biore.top        be_node89
+uywta.biore.top        be_node90
+uyhta.biore.top        be_node91
+uygsa.biore.top        be_node92
+uygsb.biore.top        be_node93
+uyrta.biore.top        be_node94
+uynva.biore.top        be_node95
+uyrka.biore.top        be_node96
+uyeaa.biore.top        be_node97
+uykua.biore.top        be_node98
+
+#hd-cf
+hdsua.biore.top        be_node99
+hdsub.biore.top        be_node100
+hdkha.biore.top        be_node101
+hdkhb.biore.top        be_node102
+hdpja.biore.top        be_node103
+hdpjb.biore.top        be_node104
+hdwta.biore.top        be_node105
+hdhta.biore.top        be_node106
+hdgsa.biore.top        be_node107
+hdgsb.biore.top        be_node108
+hdrta.biore.top        be_node109
+hdnva.biore.top        be_node110
+hdrka.biore.top        be_node111
+hdeaa.biore.top        be_node112
+hdkua.biore.top        be_node113
+
+#re-cf
+resua.biore.top        be_node114
+resub.biore.top        be_node115
+rekha.biore.top        be_node116
+rekhb.biore.top        be_node117
+repja.biore.top        be_node118
+repjb.biore.top        be_node119
+rewta.biore.top        be_node120
+rehta.biore.top        be_node121
+regsa.biore.top        be_node122
+regsb.biore.top        be_node123
+rerta.biore.top        be_node124
+renva.biore.top        be_node125
+rerka.biore.top        be_node126
+reeaa.biore.top        be_node127
+rekua.biore.top        be_node128
+MAP
+}
+
 install_haproxy() {
     echo -e "${green}开始安装 HAProxy 并生成 443 SNI 分流配置...${plain}"
     # 按系统类型安装
@@ -860,155 +1011,7 @@ backend be_node128
 EOF
 
     # 生成 /etc/haproxy/sni.map（已存在则不覆盖，避免冲掉你已有的映射）
-    if [ ! -f /etc/haproxy/sni.map ]; then
-        cat >/etc/haproxy/sni.map <<'MAP'
-#one
-chone.soraus.top       be_node1
-fnone.sorajp.top       be_node2
-knone.soraus.top       be_node3
-lyone.soraus.top       be_node4
-qcone.soraus.top       be_node5
-uyone.soraus.top       be_node6
-hdone.soraus.top       be_node7
-reone.soraus.top       be_node8
-
-#ch-cf
-chsua.biore.top        be_node9
-chsub.biore.top        be_node10
-chkha.biore.top        be_node11
-chkhb.biore.top        be_node12
-chpja.biore.top        be_node13
-chpjb.biore.top        be_node14
-chwta.biore.top        be_node15
-chhta.biore.top        be_node16
-chgsa.biore.top        be_node17
-chgsb.biore.top        be_node18
-chrta.biore.top        be_node19
-chnva.biore.top        be_node20
-chrka.biore.top        be_node21
-cheaa.biore.top        be_node22
-chkua.biore.top        be_node23
-
-#fn-cf
-fnsua.biore.top        be_node24
-fnsub.biore.top        be_node25
-fnkha.biore.top        be_node26
-fnkhb.biore.top        be_node27
-fnpja.biore.top        be_node28
-fnpjb.biore.top        be_node29
-fnwta.biore.top        be_node30
-fnhta.biore.top        be_node31
-fngsa.biore.top        be_node32
-fngsb.biore.top        be_node33
-fnrta.biore.top        be_node34
-fnnva.biore.top        be_node35
-fnrka.biore.top        be_node36
-fneaa.biore.top        be_node37
-fnkua.biore.top        be_node38
-
-#kn-cf
-knsua.biore.top        be_node39
-knsub.biore.top        be_node40
-knkha.biore.top        be_node41
-knkhb.biore.top        be_node42
-knpja.biore.top        be_node43
-knpjb.biore.top        be_node44
-knwta.biore.top        be_node45
-knhta.biore.top        be_node46
-kngsa.biore.top        be_node47
-kngsb.biore.top        be_node48
-knrta.biore.top        be_node49
-knnva.biore.top        be_node50
-knrka.biore.top        be_node51
-kneaa.biore.top        be_node52
-knkua.biore.top        be_node53
-
-#ly-cf
-lysua.biore.top        be_node54
-lysub.biore.top        be_node55
-lykha.biore.top        be_node56
-lykhb.biore.top        be_node57
-lypja.biore.top        be_node58
-lypjb.biore.top        be_node59
-lywta.biore.top        be_node60
-lyhta.biore.top        be_node61
-lygsa.biore.top        be_node62
-lygsb.biore.top        be_node63
-lyrta.biore.top        be_node64
-lynva.biore.top        be_node65
-lyrka.biore.top        be_node66
-lyeaa.biore.top        be_node67
-lykua.biore.top        be_node68
-
-#qc-cf
-qcsua.biore.top        be_node69
-qcsub.biore.top        be_node70
-qckha.biore.top        be_node71
-qckhb.biore.top        be_node72
-qcpja.biore.top        be_node73
-qcpjb.biore.top        be_node74
-qcwta.biore.top        be_node75
-qchta.biore.top        be_node76
-qcgsa.biore.top        be_node77
-qcgsb.biore.top        be_node78
-qcrta.biore.top        be_node79
-qcnva.biore.top        be_node80
-qcrka.biore.top        be_node81
-qceaa.biore.top        be_node82
-qckua.biore.top        be_node83
-
-#uy-cf
-uysua.biore.top        be_node84
-uysub.biore.top        be_node85
-uykha.biore.top        be_node86
-uykhb.biore.top        be_node87
-uypja.biore.top        be_node88
-uypjb.biore.top        be_node89
-uywta.biore.top        be_node90
-uyhta.biore.top        be_node91
-uygsa.biore.top        be_node92
-uygsb.biore.top        be_node93
-uyrta.biore.top        be_node94
-uynva.biore.top        be_node95
-uyrka.biore.top        be_node96
-uyeaa.biore.top        be_node97
-uykua.biore.top        be_node98
-
-#hd-cf
-hdsua.biore.top        be_node99
-hdsub.biore.top        be_node100
-hdkha.biore.top        be_node101
-hdkhb.biore.top        be_node102
-hdpja.biore.top        be_node103
-hdpjb.biore.top        be_node104
-hdwta.biore.top        be_node105
-hdhta.biore.top        be_node106
-hdgsa.biore.top        be_node107
-hdgsb.biore.top        be_node108
-hdrta.biore.top        be_node109
-hdnva.biore.top        be_node110
-hdrka.biore.top        be_node111
-hdeaa.biore.top        be_node112
-hdkua.biore.top        be_node113
-
-#re-cf
-resua.biore.top        be_node114
-resub.biore.top        be_node115
-rekha.biore.top        be_node116
-rekhb.biore.top        be_node117
-repja.biore.top        be_node118
-repjb.biore.top        be_node119
-rewta.biore.top        be_node120
-rehta.biore.top        be_node121
-regsa.biore.top        be_node122
-regsb.biore.top        be_node123
-rerta.biore.top        be_node124
-renva.biore.top        be_node125
-rerka.biore.top        be_node126
-reeaa.biore.top        be_node127
-rekua.biore.top        be_node128
-MAP
-    fi
+    [ -f /etc/haproxy/sni.map ] || write_default_sni_map
     fi
 
     # 校验并启动
@@ -1052,7 +1055,7 @@ restart_haproxy() {
 
 # 更新分流规则：刷新 /etc/haproxy/sni.map 后热重载（reload，不断连）。
 # 来源：私有源URL基址（参数$1 > 环境变量 HAPROXY_CFG_URL > 交互），拉 <URL>/sni.map 覆盖；
-# 留空则用本机编辑器手动改。改 sni.map 必须 reload 才生效。
+# 留空则用内置默认分流规则(128 条)覆盖。改 sni.map 必须 reload 才生效。
 update_haproxy_rules() {
     if ! command -v haproxy >/dev/null 2>&1; then
         echo -e "${red}未检测到 HAProxy，请先用菜单 16 安装${plain}" && return 1
@@ -1061,7 +1064,7 @@ update_haproxy_rules() {
     [ -f /etc/haproxy/sni.map ] && cp /etc/haproxy/sni.map /etc/haproxy/sni.map.bak
     local src="${1:-$HAPROXY_CFG_URL}"
     if [ -z "$src" ]; then
-        read -rp "分流规则来源URL基址（留空=手动编辑 sni.map）: " src
+        read -rp "分流规则来源URL基址（留空=用内置默认规则 128 条）: " src
     fi
     if [ -n "$src" ]; then
         src="${src%/}"
@@ -1073,7 +1076,12 @@ update_haproxy_rules() {
             echo -e "${red}拉取失败，保留原 sni.map${plain}" && return 1
         fi
     else
-        ${EDITOR:-vi} /etc/haproxy/sni.map
+        echo -e "${green}留空=应用内置默认分流规则(128 条)，将覆盖当前 sni.map${plain}"
+        read -rp "继续? [y/N]: " yn
+        case "$yn" in
+            y|Y) write_default_sni_map; echo -e "${green}已写入内置默认分流规则${plain}" ;;
+            *) echo -e "${red}已取消，未改动${plain}" && return 1 ;;
+        esac
     fi
     # 校验配置后热重载（sni.map 改动必须 reload 才生效；reload 不断开现有连接）
     if haproxy -c -f /etc/haproxy/haproxy.cfg; then
